@@ -23,6 +23,16 @@ let cxtmenu = function(params){
   let containerSize = (r + options.activePadding)*2;
   let activeCommandI;
   let offset;
+  var canvasSize = containerSize,
+    activePadding = options.activePadding,
+    hasSubCommand = !!options.commands.find(function (menu) {
+      return !!menu.subCommands
+    }),
+    offsetSize = hasSubCommand ? 2 * r : r;
+
+  if(hasSubCommand) {
+    containerSize = canvasSize + r * 2;
+  }
 
   container.insertBefore(wrapper, container.firstChild);
   wrapper.appendChild(parent);
@@ -45,8 +55,8 @@ let cxtmenu = function(params){
     userSelect: 'none'
   });
 
-  canvas.width = containerSize;
-  canvas.height = containerSize;
+  canvas.width = canvasSize;
+  canvas.height = canvasSize;
 
   function createMenuItems() {
     removeEles('.cxtmenu-item', parent);
@@ -132,8 +142,8 @@ let cxtmenu = function(params){
         c2d.fillStyle = command.fillColor;
       }
       c2d.beginPath();
-      c2d.moveTo(r + options.activePadding, r + options.activePadding);
-      c2d.arc(r + options.activePadding, r + options.activePadding, r, 2*Math.PI - theta1, 2*Math.PI - theta2, true);
+      c2d.moveTo(offsetSize + options.activePadding, offsetSize + options.activePadding);
+      c2d.arc(offsetSize + options.activePadding, offsetSize + options.activePadding, r, 2*Math.PI - theta1, 2*Math.PI - theta2, true);
       c2d.closePath();
       c2d.fill();
 
@@ -154,8 +164,8 @@ let cxtmenu = function(params){
       let rx1 = r * Math.cos(theta1);
       let ry1 = r * Math.sin(theta1);
       c2d.beginPath();
-      c2d.moveTo(r + options.activePadding, r + options.activePadding);
-      c2d.lineTo(r + options.activePadding + rx1, r + options.activePadding - ry1);
+      c2d.moveTo(offsetSize + options.activePadding, offsetSize + options.activePadding);
+      c2d.lineTo(offsetSize + options.activePadding + rx1,offsetSize + options.activePadding - ry1);
       c2d.closePath();
       c2d.stroke();
 
@@ -167,21 +177,23 @@ let cxtmenu = function(params){
     c2d.fillStyle = 'white';
     c2d.globalCompositeOperation = 'destination-out';
     c2d.beginPath();
-    c2d.arc(r + options.activePadding, r + options.activePadding, rspotlight + options.spotlightPadding, 0, Math.PI*2, true);
+    c2d.arc(offsetSize + options.activePadding, offsetSize + options.activePadding, rspotlight + options.spotlightPadding, 0, Math.PI*2, true);
     c2d.closePath();
     c2d.fill();
 
     c2d.globalCompositeOperation = 'source-over';
   }
 
-  function queueDrawCommands( rx, ry, theta ){
-    redrawQueue.drawCommands = [ rx, ry, theta ];
+  function queueDrawCommands( rx, ry, theta , d){
+    redrawQueue.drawCommands = [ rx, ry, theta , d];
   }
 
-  function drawCommands( rx, ry, theta ){
+  function drawCommands( rx, ry, theta, d){
     let dtheta = 2*Math.PI/(commands.length);
     let theta1 = Math.PI/2;
     let theta2 = theta1 + dtheta;
+
+    let mouseR = d;
 
     theta1 += dtheta * activeCommandI;
     theta2 += dtheta * activeCommandI;
@@ -190,16 +202,167 @@ let cxtmenu = function(params){
     c2d.strokeStyle = 'black';
     c2d.lineWidth = 1;
     c2d.beginPath();
-    c2d.moveTo(r + options.activePadding, r + options.activePadding);
-    c2d.arc(r + options.activePadding, r + options.activePadding, r + options.activePadding, 2*Math.PI - theta1, 2*Math.PI - theta2, true);
+    c2d.moveTo(offsetSize + options.activePadding, offsetSize + options.activePadding);
+    c2d.arc(offsetSize + options.activePadding, offsetSize + options.activePadding, r + options.activePadding, 2*Math.PI - theta1, 2*Math.PI - theta2, true);
     c2d.closePath();
     c2d.fill();
+
+    if(activeCommandI !== undefined) {
+      var midtheta = (theta1 + theta2) / 2;
+      var rx_2 = 0.66 * r * Math.cos(midtheta);
+      var ry_2 = 0.66 * r * Math.sin(midtheta);
+
+      var item = createElement({class: 'cxtmenu-item'});
+
+      setStyles(item, {
+        color: options.itemColor,
+        cursor: 'default',
+        display: 'table',
+        'text-align': 'center',
+        //background: 'red',
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        'min-height': (r * 0.66) + 'px',
+        width: (r * 0.66) + 'px',
+        height: (r * 0.66) + 'px',
+        marginLeft: (rx_2 - r * 0.33) + 'px',
+        marginTop: (-ry_2 - r * 0.33) + 'px'
+      });
+
+      var content = createElement({class: 'cxtmenu-content'});
+
+      setStyles(content, {
+        'width': (r * 0.66) + 'px',
+        'height': (r * 0.66) + 'px',
+        'vertical-align': 'middle',
+        'display': 'table-cell'
+      });
+    }
+
+    activeCommandI !== undefined && (function (subCommands, thetaRange, thetaStart, thetaEnd) {
+      if (!subCommands || !subCommands.length) return;
+      var
+        id = 0,
+        sl = subCommands.length,
+        dTheta = thetaRange / sl,
+        theta1 = thetaStart,
+        theta2 = theta1 + dTheta,
+        rx1, ry1, rx2, ry2, parseTheta;
+
+      parseTheta = theta < Math.PI ? theta + Math.PI * 2 : theta;
+
+      for (; id < sl; id++) {
+        rx1 = r * Math.cos(theta1);
+        ry1 = r * Math.sin(theta1);
+        rx2 = (r * 2) * Math.cos(theta1);
+        ry2 = (r * 2) * Math.sin(theta1);
+
+        var subCommand = subCommands[id];
+
+        if( subCommand.fillColor ){
+          c2d.fillStyle = subCommands[id].fillColor;
+        }
+
+        //The background of Two level's menu
+        c2d.beginPath();
+        //c2d.strokeStyle = 'white';
+        c2d.arc(offsetSize + activePadding, offsetSize + activePadding, r, -theta1, -theta2, true);
+        c2d.arc(offsetSize + activePadding, offsetSize + activePadding, r * 2, -theta2, -theta1, false);
+        c2d.closePath();
+        c2d.fill();
+
+        c2d.beginPath();
+        c2d.strokeStyle = "white";
+        c2d.moveTo(offsetSize + activePadding + rx1, offsetSize + activePadding - ry1);
+        //c2d.arc(offsetSize + activePadding + rx1,offsetSize + activePadding - ry1, 20 , 0, Math.PI * 2, false);
+        c2d.lineTo(offsetSize + activePadding + rx2, offsetSize + activePadding - ry2);
+
+        c2d.stroke();
+        //c2d.closePath();
+
+
+        //draw content
+        var midTheta = (theta1 + theta2) / 2;
+        var rx_1 = 1.66 * r * Math.cos(midTheta);
+        var ry_1 = 1.66 * r * Math.sin(midTheta);
+
+        var $subItem = createElement({class: 'cxtmenu-sub-item'});
+        setStyles($subItem, {
+          color: options.itemColor,
+          cursor: 'default',
+          display: 'table',
+          'text-align': 'center',
+          //background: 'red',
+          position: 'absolute',
+          'text-shadow': '-1px -1px ' + options.itemTextShadowColor + ', 1px -1px ' + options.itemTextShadowColor + ', -1px 1px ' + options.itemTextShadowColor + ', 1px 1px ' + options.itemTextShadowColor,
+          //left: '50%',
+          //top: '50%',
+          'min-height': r * 0.66,
+          width: r * 0.66,
+          height: r * 0.66,
+          marginLeft: ((rx_1 - r * 0.33) - ( rx_2 - r * 0.33)) + "px",
+          marginTop: ((-ry_1 - r * 0.33) - ( -ry_2 - r * 0.33)) + "px"
+        });
+        var $subContent = createElement({class: 'cxtmenu-sub-content'});
+        //$subContent = $('<div class="cxtmenu-sub-content">' + subCommand.content + '</div>');
+        setStyles($subContent, {
+          'transform': 'transform: rotate(' + (Math.PI / 2 - midTheta) * (180 / Math.PI) + 'deg)',
+          'width': r * 0.66,
+          'height': r * 0.66,
+          'vertical-align': 'middle',
+          'display': 'table-cell'
+        });
+        $subContent.innerHTML = subCommand.content;
+
+        if (subCommand.disabled) {
+          $subContent.classList.add('cxtmenu-disabled');
+        }
+        $subItem.appendChild($subContent);
+        item.appendChild($subItem);
+
+
+        if (
+          (
+            (theta2 < Math.PI * 2) && ( theta1 < theta && theta < theta2)
+            || (theta2 > Math.PI * 2) && ( theta1 < parseTheta && parseTheta < theta2)
+          )
+          && ( r < mouseR && mouseR < 2 * r)
+        ) {
+          activeCommandI = id;
+
+          //level2's background
+          c2d.beginPath();
+          //c2d.strokeStyle = 'white';
+          c2d.arc(offsetSize + activePadding, offsetSize + activePadding, r, -theta1, -theta2, true);
+          c2d.arc(offsetSize + activePadding, offsetSize + activePadding, r * 2, -theta2, -theta1, false);
+          c2d.closePath();
+          c2d.fill();
+        }
+
+        theta1 += dTheta;
+        theta2 += dTheta;
+
+        if(commands[activeCommandI].fillColor) {
+          c2d.fillStyle = commands[activeCommandI].fillColor;
+        }
+        else {
+          c2d.fillStyle = options.activeFillColor;
+        }
+      }
+
+    })(commands[activeCommandI].subCommands, dtheta, theta1, theta2);
+
+    if(activeCommandI !== undefined) {
+      parent.appendChild(item);
+      item.appendChild(content);
+    }
 
     c2d.fillStyle = 'white';
     c2d.globalCompositeOperation = 'destination-out';
 
-    let tx = r + options.activePadding + rx/r*(rs + options.spotlightPadding - options.indicatorSize/4);
-    let ty = r + options.activePadding + ry/r*(rs + options.spotlightPadding - options.indicatorSize/4);
+    let tx = offsetSize + options.activePadding + rx/r*(rs + options.spotlightPadding - options.indicatorSize/4);
+    let ty = offsetSize + options.activePadding + ry/r*(rs + options.spotlightPadding - options.indicatorSize/4);
     let rot = Math.PI/4 - theta;
 
     c2d.translate( tx, ty );
@@ -218,7 +381,7 @@ let cxtmenu = function(params){
 
     // clear the spotlight
     c2d.beginPath();
-    c2d.arc(r + options.activePadding, r + options.activePadding, rs + options.spotlightPadding, 0, Math.PI*2, true);
+    c2d.arc(offsetSize + options.activePadding, offsetSize + options.activePadding, rs + options.spotlightPadding, 0, Math.PI*2, true);
     c2d.closePath();
     c2d.fill();
 
@@ -395,8 +558,8 @@ let cxtmenu = function(params){
 
         setStyles(parent, {
           display: 'block',
-          left: (rp.x - r) + 'px',
-          top: (rp.y - r) + 'px'
+          left: (rp.x - offsetSize) + 'px',
+          top: (rp.y - offsetSize) + 'px'
         });
 
         rs = Math.max(rw, rh)/2;
@@ -469,7 +632,7 @@ let cxtmenu = function(params){
           theta2 += dtheta;
         }
 
-        queueDrawCommands( rx, ry, theta );
+        queueDrawCommands( rx, ry, theta, d );
       })
 
       .on('tapdrag', dragHandler)
