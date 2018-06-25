@@ -22,6 +22,7 @@ let cxtmenu = function(params){
   let r = options.menuRadius;
   let containerSize = (r + options.activePadding)*2;
   let activeCommandI;
+  let activeCommandISub;
   let offset;
   var canvasSize = containerSize,
     activePadding = options.activePadding,
@@ -242,10 +243,11 @@ let cxtmenu = function(params){
       });
     }
 
+    activeCommandISub = undefined;
+
     activeCommandI !== undefined && (function (subCommands, thetaRange, thetaStart, thetaEnd) {
       if (!subCommands || !subCommands.length) {
-        //removeEles('.cxtmenu-item', parent);
-        //removeEles('.cxtmenu-sub-item', item);
+
         return;
       }
       var
@@ -335,7 +337,7 @@ let cxtmenu = function(params){
           )
           && ( r < mouseR && mouseR < 2 * r)
         ) {
-          activeCommandI = id;
+          activeCommandISub = id;
 
           //level2's background
           c2d.beginPath();
@@ -649,10 +651,24 @@ let cxtmenu = function(params){
         if( activeCommandI !== undefined ){
           let select = commands[ activeCommandI ].select;
 
-          if( select ){
-            select.apply( target, [target, gestureStartEvent] );
-            activeCommandI = undefined;
+          if(activeCommandISub !== undefined){
+            let select_level2 = commands[ activeCommandI ].subCommands[ activeCommandISub ].select;
+
+            if( select_level2 ){
+              select_level2.apply( target, [target, gestureStartEvent] );
+              activeCommandI = undefined;
+              activeCommandISub = undefined;
+            }
           }
+          else {
+            if( select ){
+              select.apply( target, [target, gestureStartEvent] );
+              activeCommandI = undefined;
+              activeCommandISub = undefined;
+            }
+          }
+
+
         }
 
         inGesture = false;
