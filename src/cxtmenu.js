@@ -123,6 +123,7 @@ let cxtmenu = function(params){
   }
 
   function drawBg( rspotlight ){
+    removeEles('.cxtmenu-sub-item', parent);
     rspotlight = rspotlight !== undefined ? rspotlight : rs;
 
     c2d.globalCompositeOperation = 'source-over';
@@ -185,6 +186,7 @@ let cxtmenu = function(params){
   }
 
   function queueDrawCommands( rx, ry, theta , d){
+
     redrawQueue.drawCommands = [ rx, ry, theta , d];
   }
 
@@ -241,7 +243,11 @@ let cxtmenu = function(params){
     }
 
     activeCommandI !== undefined && (function (subCommands, thetaRange, thetaStart, thetaEnd) {
-      if (!subCommands || !subCommands.length) return;
+      if (!subCommands || !subCommands.length) {
+        //removeEles('.cxtmenu-item', parent);
+        //removeEles('.cxtmenu-sub-item', item);
+        return;
+      }
       var
         id = 0,
         sl = subCommands.length,
